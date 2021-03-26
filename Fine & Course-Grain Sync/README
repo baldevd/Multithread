@@ -1,0 +1,23 @@
+Coarse Grain Threading:
+To implement coarse grain threading we created one global lock to lock access to the list. Our strategy was to follow the multithreading principles listed and add our locks
+at the beginning and unlocks right before the return of the procedure. Apart from that, we just added conditionals to check if the count was above or below the HI and LOW WATERMARKS
+at the start of reference and clean. At the end of reference, we check to see if the count is above the low watermark, and if so, we send a signal to unblock the thread (vice versa with clean).
+Our implementation of shutdown_threads, was essentially just a call to broadcast for threads blocked on CV_HI and CV_LOW and setting the global variable done equal to 1.
+After unblocking, the threads check to see if the done flag is raised, and exit if so.
+
+Fine Grain Threading:
+Our implementation of fine grain threading comes from chapter 9.5 of the provided textbook. Our strategy was to lock two nodes every interation and unlock the previous node and lock the next
+node after each iteration. To resolve issues on the first iteration of the while loop, we added a flag to check if it was the first time in the loop, if so, we locked the current node and we
+don't unlock the previous node (because there isn't one yet), after the first iteration, we no longer need to lock two nodes, so we don't call the initial lock anymore. We also had to
+add conditions to check if cursor->next was null, and if so, we would unlock and break out of the loop. This is because we can't lock a null node, and we only check if cursor is null after
+it has been set, so we need another condition. We added our global lock whenever we met the condition to iterate the count, this would prevent our code from essentially acting like a coarse
+grain method.
+
+For the clean method, we took the same approach, and checked for similar conditions as we did for reference.
+
+Our implementation of the high and low watermarks were similar to what we did in our Course Grain implementation. The exception is that we put our signals within the global lock and check if
+we should unblock after count is incremented.
+
+Testing:
+We added unit tests to test whether our cache would hang when we tried to clean when count < LOW_WATERMARK and when we tried to reference when count was > HIGH_WATERMARK. We also tested to
+see if our shutdown_threads method was working properly as well as a test to test the robustness of our cache.
